@@ -262,14 +262,30 @@ void test_ulp_bf16() {
     my_C = *(uint32_t *)(&C);
     FP32 my_D = bf16_1x16x1<EXPAND_BIT_BF16, EXTRA_BIT_BF16>(my_A, my_B, my_C);
     uint32_t my_D_32 = my_D.to_uint();
+    if (my_D_32 & 0x80000000) {
+      my_D_32 = ~my_D_32 + 1;
+    } else {
+      my_D_32 = my_D_32 | 0x80000000;
+    }
     float my_D_f32 = *(float *)(&my_D_32);
 
     float golden_rst_f32 = (float)golden_rst;
     uint32_t golden_rst_32 = *(uint32_t *)(&golden_rst_f32);
+    if (golden_rst_32 & 0x80000000) {
+      golden_rst_32 = ~golden_rst_32 + 1;
+    } else {
+      golden_rst_32 = golden_rst_32 | 0x80000000;
+    }
 
     uint32_t D_32 = *(uint32_t *)(&D[0]);
-    uint32_t my_ulp_tmp = std::abs((int64_t)golden_rst_32 - (int64_t)my_D_32);
-    uint32_t nv_ulp_tmp = std::abs((int64_t)golden_rst_32 - (int64_t)D_32);
+    if (D_32 & 0x80000000) {
+      D_32 = ~D_32 + 1;
+    } else {
+      D_32 = D_32 | 0x80000000;
+    }
+
+    uint32_t my_ulp_tmp = (golden_rst_32 >= my_D_32) ? (golden_rst_32 - my_D_32) : (my_D_32 - golden_rst_32);
+    uint32_t nv_ulp_tmp = (golden_rst_32 >= D_32) ? (golden_rst_32 - D_32) : (D_32 - golden_rst_32);
 
     // if (my_max_ulp < my_ulp_tmp) {
     // if (nv_max_ulp < nv_ulp_tmp) {
